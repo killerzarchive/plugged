@@ -1,4 +1,5 @@
 const { getDefaultConfig } = require('expo/metro-config');
+const { withNativeWind } = require('nativewind/metro');
 
 const config = getDefaultConfig(__dirname);
 
@@ -10,4 +11,7 @@ if (!config.resolver.sourceExts.includes('mjs')) {
   config.resolver.sourceExts.push('mjs');
 }
 
-module.exports = config;
+// Required for lucide-react-native ESM package exports
+config.resolver.unstable_enablePackageExports = true;
+
+module.exports = withNativeWind(config, { input: "./global.css" });

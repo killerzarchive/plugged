@@ -7,6 +7,7 @@ export const PFP_MUTATION = gql`
       name
       pfp
       bio
+      type
     }
   }
 `;
@@ -42,6 +43,49 @@ export const CREATE_HOTSPOT = gql`
     }
   }
 `;
+export const CREATE_EVENT = gql`
+  mutation CreateEvent($data: HotspotCreateInput!) {
+    createHotspot(data: $data) {
+      id
+      name
+      avatar
+      description
+      type
+      site
+      time
+      isEvent
+      location {
+        id
+        latitude
+        longitude
+        address
+      }
+    }
+  }
+`;
+
+export const CREATE_POPUP = gql`
+  mutation CreatePopup($data: HotspotCreateInput!) {
+    createHotspot(data: $data) {
+      id
+      name
+      avatar
+      description
+      type
+      isPopup
+      popupStart
+      popupEnd
+      popupDuration
+      location {
+        id
+        latitude
+        longitude
+        address
+      }
+    }
+  }
+`;
+
 export const CREATE_REVIEW = gql`
   mutation CreateReview($hotspotId: Int!, $rating: Int!, $comment: String) {
     createReview(hotspotId: $hotspotId, rating: $rating, comment: $comment) {
@@ -57,6 +101,7 @@ export const CREATE_REVIEW = gql`
       hotspot {
         id
         name
+        ratings
       }
     }
   }
@@ -73,6 +118,7 @@ export const CREATE_POST = gql`
       published
       media
       type
+      tags
       hotspot {
         id
         name
@@ -98,6 +144,55 @@ export const UPDATE_LOCATION = gql`
       latitude
       longitude
       address
+    }
+  }
+`;
+
+export const LIKE_POST = gql`
+  mutation LikePost($postId: Int!) {
+    likePost(postId: $postId) {
+      id
+      likesCount
+      isLikedByMe
+    }
+  }
+`;
+
+export const UNLIKE_POST = gql`
+  mutation UnlikePost($postId: Int!) {
+    unlikePost(postId: $postId) {
+      id
+      likesCount
+      isLikedByMe
+    }
+  }
+`;
+
+export const MARK_NOTIFICATIONS_READ = gql`
+  mutation MarkNotificationsRead {
+    markNotificationsRead {
+      count
+    }
+  }
+`;
+
+export const CREATE_CHECKIN = gql`
+  mutation CreateCheckIn($hotspotId: Int!) {
+    createCheckIn(hotspotId: $hotspotId) {
+      id
+      createdAt
+      updatedAt
+      userId
+      hotspotId
+      user {
+        id
+        name
+        email
+      }
+      hotspot {
+        id
+        name
+      }
     }
   }
 `;

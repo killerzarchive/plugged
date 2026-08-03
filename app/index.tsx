@@ -7,6 +7,6 @@ export default function Index() {
   if (token) {
     return <Redirect href="/(tabs)" />;
   }
-  
-  return <Redirect href="/(auth)/login" />;
+  // Unauthenticated users should land on the marketing landing page
+  return <Redirect href="/landing" />;
 }

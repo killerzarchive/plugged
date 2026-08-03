@@ -1,30 +1,32 @@
-import { ApolloClient, HttpLink, InMemoryCache } from "@apollo/client";
-import { setContext } from "@apollo/client/link/context";
+import { ApolloClient, ApolloLink, HttpLink, InMemoryCache, Observable } from "@apollo/client";
 import * as SecureStore from "expo-secure-store";
 
 const httpLink = new HttpLink({
-  uri: "https://plugged-563q.onrender.com/graphql", // GraphQL endpoint
+  uri: "https://plugged-563q.onrender.com/graphql",
 });
 
-const authMiddleware = setContext(async (operation, { headers }) => {
-  // Get the authentication token from SecureStore
-  const token = await SecureStore.getItemAsync("token");
-  
-  // Return the headers to the context so httpLink can read them
-  return {
-    headers: {
-      ...headers,
-      authorization: token ? `Bearer ${token}` : "",
-    },
-  };
-});
+const authMiddleware = new ApolloLink((operation, forward) =>
+  new Observable((observer) => {
+    SecureStore.getItemAsync("token")
+      .then((token) => {
+        operation.setContext(({ headers = {} }: { headers: Record<string, string> }) => ({
+          headers: {
+            ...headers,
+            authorization: token ? `Bearer ${token}` : "",
+          },
+        }));
+        forward(operation).subscribe(observer);
+      })
+      .catch(observer.error.bind(observer));
+  })
+);
 
 export const client = new ApolloClient({
   link: authMiddleware.concat(httpLink),
   cache: new InMemoryCache(),
   defaultOptions: {
     watchQuery: {
-      fetchPolicy: 'cache-and-network',
+      fetchPolicy: "cache-and-network",
     },
   },
 });

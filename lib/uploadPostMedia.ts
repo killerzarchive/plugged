@@ -15,7 +15,8 @@ export async function pickPostMedia(): Promise<string | null> {
   }
 
   const result = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ['images'],
+    // allow both images and videos
+    mediaTypes: ImagePicker.MediaTypeOptions.All,
     quality: 0.9,
     allowsEditing: false,
   });
@@ -27,17 +28,26 @@ export async function pickPostMedia(): Promise<string | null> {
 
 export async function uploadPostMedia(uri: string): Promise<UploadResult> {
   const ext = uri.split('.').pop()?.toLowerCase() || 'jpg';
+  const videoExts = ['mp4', 'mov', 'm4v', 'webm', 'mkv', 'avi'];
   const rand = Math.random().toString(36).slice(2);
   const filePath = `${Date.now()}_${rand}.${ext}`;
 
   const response = await fetch(uri);
   const arrayBuffer = await response.arrayBuffer();
 
+  // choose content type based on extension
+  let contentType = `image/${ext}`;
+  if (videoExts.includes(ext)) {
+    // map common extension to mime type
+    if (ext === 'mov') contentType = 'video/quicktime';
+    else contentType = `video/${ext}`;
+  }
+
   const { data, error } = await supabase.storage.from(BUCKET).upload(
     filePath,
     arrayBuffer,
     {
-      contentType: `image/${ext}`,
+      contentType,
       upsert: true,
     }
   );

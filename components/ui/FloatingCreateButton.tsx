@@ -3,7 +3,7 @@ import { ALL_HOTSPOTS } from '@/app/apollo/queries/general';
 import tw from '@/lib/tw';
 import { pickPostMedia, uploadPostMedia } from '@/lib/uploadPostMedia';
 import { useMutation, useQuery } from '@apollo/client/react';
-import { Ionicons } from '@expo/vector-icons';
+import { Megaphone, MapPin, Play, Plus, Star, X } from 'lucide-react-native';
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Image, Modal, Pressable, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -84,15 +84,16 @@ export default function FloatingCreateButton({}: Props) {
   };
 
   return (
-    <View pointerEvents="box-none" style={tw`absolute inset-0`}>
+    <>
       {/* Floating Button */}
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Create"
         onPress={() => setMenuOpen(true)}
-        style={tw`absolute right-5 bottom-5 w-12 border border-[#222] h-12 rounded-full bg-black items-center justify-center shadow-lg`}
+        style={tw`border border-[#222] flex flex-row items-center py-1 px-3 rounded-full bg-black`}
       >
-        <Ionicons name="add" size={24} color="#fff" />
+        <Text style={[tw`text-white mr-1 text-xs`, { fontFamily: "Roobert-SemiBold" }]}>Create</Text>
+        <Ionicons name="add" size={12} color="#fff" />
       </Pressable>
 
       {/* Backdrop + Menu */}
@@ -211,17 +212,27 @@ export default function FloatingCreateButton({}: Props) {
                   data={mediaUris}
                   keyExtractor={(u, i) => u + i}
                   horizontal
-                  renderItem={({ item, index }) => (
-                    <View style={tw`mr-2`}>
-                      <Image source={{ uri: item }} style={{ width: 72, height: 72, borderRadius: 8 }} />
-                      <TouchableOpacity
-                        onPress={() => setMediaUris((arr) => arr.filter((_, i) => i !== index))}
-                        style={tw`absolute -top-2 -right-2 bg-black/60 rounded-full p-1`}
-                      >
-                        <Ionicons name="close" size={14} color="#fff" />
-                      </TouchableOpacity>
-                    </View>
-                  )}
+                  renderItem={({ item, index }) => {
+                    const ext = item.split('.').pop()?.toLowerCase() || '';
+                    const isVideo = ['mp4','mov','m4v','webm','mkv','avi'].includes(ext);
+                    return (
+                      <View style={tw`mr-2`}>
+                        {isVideo ? (
+                          <View style={{ width: 72, height: 72, borderRadius: 8, backgroundColor: '#000', alignItems: 'center', justifyContent: 'center' }}>
+                            <Ionicons name="play" size={28} color="#fff" />
+                          </View>
+                        ) : (
+                          <Image source={{ uri: item }} style={{ width: 72, height: 72, borderRadius: 8 }} />
+                        )}
+                        <TouchableOpacity
+                          onPress={() => setMediaUris((arr) => arr.filter((_, i) => i !== index))}
+                          style={tw`absolute -top-2 -right-2 bg-black/60 rounded-full p-1`}
+                        >
+                          <Ionicons name="close" size={14} color="#fff" />
+                        </TouchableOpacity>
+                      </View>
+                    );
+                  }}
                 />
               )}
             </View>
@@ -240,6 +251,6 @@ export default function FloatingCreateButton({}: Props) {
           </View>
         </View>
       </Modal>
-    </View>
+    </>
   );
 }

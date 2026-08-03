@@ -2,7 +2,7 @@ import tw from "@/lib/tw";
 import { useMutation, useQuery } from "@apollo/client/react";
 import { useNavigation } from "@react-navigation/native";
 import { Image } from "expo-image";
-import * as SecureStore from "expo-secure-store";
+import { router } from "expo-router";
 import React from "react";
 import {
   ActivityIndicator,
@@ -77,9 +77,12 @@ export default function ProfileSetupScreen() {
         await updateProfile({ variables: { data: updates } });
       }
 
-  // Mark onboarding complete now (location deferred to profile tab)
-  await SecureStore.setItemAsync("onboardingComplete", "true");
-  navigation.navigate("MainTabs" as never);
+      // Proceed to location setup next (do not mark onboarding complete until location saved)
+      try {
+        router.push("/(auth)/setup/location");
+      } catch (e) {
+        navigation.navigate("LocationSetup" as never);
+      }
     } catch (e) {
       setError("Failed to save profile");
       console.warn("Save profile error:", e);
@@ -88,8 +91,11 @@ export default function ProfileSetupScreen() {
   }, [pfpUri, bio, meData?.me?.id, updateProfile, navigation]);
 
   const handleSkip = React.useCallback(async () => {
-    await SecureStore.setItemAsync("onboardingComplete", "true");
-    navigation.navigate("MainTabs" as never);
+    try {
+      router.push("/(auth)/setup/location");
+    } catch (e) {
+      navigation.navigate("LocationSetup" as never);
+    }
   }, [navigation]);
 
   return (

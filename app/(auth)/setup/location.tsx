@@ -1,11 +1,12 @@
 import tw from "@/lib/tw";
 import { useMutation } from "@apollo/client/react";
 import * as ExpoLocation from "expo-location";
+import { router } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import React from "react";
 import {
   ActivityIndicator,
-  StyleSheet,
+  SafeAreaView,
   Text,
   TouchableOpacity,
   View,
@@ -29,7 +30,6 @@ interface LocationData {
   address?: string;
 }
 
-// 👇 Add explicit props type here
 interface LocationScreenProps {
   onComplete?: () => void;
 }
@@ -52,12 +52,12 @@ export default function LocationScreen({ onComplete }: LocationScreenProps) {
 
       const { status } = await ExpoLocation.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        setError("Permission to access location was denied");
+        setError("Location permission was denied. You can update this in settings.");
         return;
       }
 
       const loc = await ExpoLocation.getCurrentPositionAsync({
-        accuracy: ExpoLocation.Accuracy.High,
+        accuracy: ExpoLocation.Accuracy.Balanced,
       });
       setLocation(loc.coords);
 
@@ -68,19 +68,18 @@ export default function LocationScreen({ onComplete }: LocationScreenProps) {
 
       if (geocode.length > 0) {
         const place = geocode[0];
-        const fullAddress = [
+        // Build a friendly address: "City, State" or full if available
+        const parts = [
           place.streetNumber,
           place.street,
           place.city,
           place.region,
           place.postalCode,
-        ]
-          .filter(Boolean)
-          .join(", ");
-        setAddress(fullAddress);
+        ].filter(Boolean);
+        setAddress(parts.join(", "));
       }
     } catch (e) {
-      setError("Failed to get location");
+      setError("Couldn't get your location. Please try again.");
       console.warn("Location error:", e);
     } finally {
       setLoading(false);
@@ -89,7 +88,6 @@ export default function LocationScreen({ onComplete }: LocationScreenProps) {
 
   const saveLocation = React.useCallback(async () => {
     if (!location) return;
-
     try {
       await updateLocation({
         variables: {
@@ -98,95 +96,137 @@ export default function LocationScreen({ onComplete }: LocationScreenProps) {
           address: address || undefined,
         },
       });
-
       await SecureStore.setItemAsync("onboardingComplete", "true");
-
-      // 👇 triggers moving to MainTabs
-      onComplete?.();
+      try {
+        router.replace("/(tabs)");
+      } catch {
+        onComplete?.();
+      }
     } catch (e) {
-      setError("Failed to save location");
+      setError("Couldn't save your location. Please try again.");
       console.warn("Save location error:", e);
     }
   }, [location, address, updateLocation, onComplete]);
 
+  // Derive a friendly city/state label
+  const cityLabel = React.useMemo(() => {
+    if (!address) return null;
+    const parts = address.split(",").map((p) => p.trim()).filter(Boolean);
+    if (parts.length >= 3) return `${parts[parts.length - 3]}, ${parts[parts.length - 2]}`;
+    if (parts.length === 2) return `${parts[0]}, ${parts[1]}`;
+    return parts[0] ?? null;
+  }, [address]);
+
   return (
-    <View style={tw`flex-1 bg-black px-7 py-10`}>
-      <View style={tw`mt-10`}>
-        <Text style={tw`text-white text-2xl font-bold mb-2`}>
-          Set Your Location
-        </Text>
-        <Text style={tw`text-gray-400 text-sm mb-8`}>
-          We'll use your location to show you nearby users and events
-        </Text>
+    <SafeAreaView style={tw`flex-1 bg-black`}>
+      <View style={tw`flex-1 px-7 justify-between py-8`}>
 
-        {error && (
-          <View style={tw`bg-red-900 rounded p-3 mb-4`}>
-            <Text style={tw`text-red-200`}>{error}</Text>
-          </View>
-        )}
+        {/* Progress indicator */}
+        <View style={tw`flex-row gap-1.5`}>
+          <View style={tw`h-1 flex-1 bg-white rounded-full`} />
+          <View style={tw`h-1 flex-1 bg-white rounded-full`} />
+        </View>
 
-        {!location && (
-          <TouchableOpacity
-            onPress={requestLocation}
-            disabled={loading}
-            style={tw`bg-blue-600 rounded-lg py-4 items-center ${
-              loading ? "opacity-50" : ""
-            }`}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={tw`text-white font-semibold text-lg`}>
-                Get My Location
+        {/* Content */}
+        <View>
+          <Text style={[tw`text-white text-4xl mb-2`, { fontFamily: "Roobert-Bold" }]}>
+            Where are you based?
+          </Text>
+          <Text style={[tw`text-gray-400 mb-10`, { fontFamily: "Roobert-Regular" }]}>
+            We'll show you what's happening near you and help your friends find you.
+          </Text>
+
+          {/* Error */}
+          {error ? (
+            <View style={tw`bg-[#1a0000] border border-red-900 rounded-xl px-4 py-3 mb-6`}>
+              <Text style={[tw`text-red-400 text-sm`, { fontFamily: "Roobert-Medium" }]}>
+                {error}
               </Text>
-            )}
-          </TouchableOpacity>
-        )}
+            </View>
+          ) : null}
 
-        {location && (
-          <View style={tw`bg-gray-900 rounded-lg p-4 mb-6`}>
-            <Text style={tw`text-white font-semibold mb-2`}>
-              Current Location
-            </Text>
-            <Text style={tw`text-gray-400 text-sm mb-1`}>
-              Lat: {location.latitude.toFixed(6)}
-            </Text>
-            <Text style={tw`text-gray-400 text-sm mb-2`}>
-              Lng: {location.longitude.toFixed(6)}
-            </Text>
-            {address && (
-              <Text style={tw`text-gray-300 text-sm mt-2`}>{address}</Text>
-            )}
-          </View>
-        )}
+          {/* Location result card */}
+          {location && (
+            <View style={tw`border border-[#2a2a2a] rounded-2xl p-5 mb-6`}>
+              <Text style={[tw`text-gray-500 text-xs mb-1`, { fontFamily: "Roobert-Medium" }]}>
+                Your location
+              </Text>
+              {cityLabel ? (
+                <Text style={[tw`text-white text-xl`, { fontFamily: "Roobert-SemiBold" }]}>
+                  {cityLabel}
+                </Text>
+              ) : null}
+              {address ? (
+                <Text style={[tw`text-gray-400 text-sm mt-1`, { fontFamily: "Roobert-Regular" }]}>
+                  {address}
+                </Text>
+              ) : null}
+            </View>
+          )}
+        </View>
 
-        {location && (
-          <View style={tw`flex-row gap-3`}>
+        {/* Actions */}
+        <View style={tw`gap-3`}>
+          {!location ? (
             <TouchableOpacity
               onPress={requestLocation}
               disabled={loading}
-              style={tw`flex-1 bg-gray-700 rounded-lg py-3 items-center`}
+              activeOpacity={0.85}
+              style={[tw`w-full bg-white py-4 rounded-2xl items-center`, loading && tw`opacity-40`]}
             >
-              <Text style={tw`text-white font-semibold`}>Refresh</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={saveLocation}
-              disabled={updating}
-              style={tw`flex-1 bg-blue-600 rounded-lg py-3 items-center ${
-                updating ? "opacity-50" : ""
-              }`}
-            >
-              {updating ? (
-                <ActivityIndicator color="#fff" size="small" />
+              {loading ? (
+                <ActivityIndicator color="#000" size="small" />
               ) : (
-                <Text style={tw`text-white font-semibold`}>Save Location</Text>
+                <Text style={[tw`text-black text-base`, { fontFamily: "Roobert-SemiBold" }]}>
+                  Use my location
+                </Text>
               )}
             </TouchableOpacity>
-          </View>
-        )}
+          ) : (
+            <>
+              <TouchableOpacity
+                onPress={saveLocation}
+                disabled={updating}
+                activeOpacity={0.85}
+                style={[tw`w-full bg-white py-4 rounded-2xl items-center`, updating && tw`opacity-40`]}
+              >
+                {updating ? (
+                  <ActivityIndicator color="#000" size="small" />
+                ) : (
+                  <Text style={[tw`text-black text-base`, { fontFamily: "Roobert-SemiBold" }]}>
+                    Confirm location
+                  </Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={requestLocation}
+                disabled={loading}
+                activeOpacity={0.85}
+                style={tw`w-full border border-[#2a2a2a] py-4 rounded-2xl items-center`}
+              >
+                <Text style={[tw`text-white text-base`, { fontFamily: "Roobert-SemiBold" }]}>
+                  Try again
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+          <TouchableOpacity
+            onPress={async () => {
+              await SecureStore.setItemAsync("onboardingComplete", "true");
+              router.replace("/(tabs)");
+            }}
+            activeOpacity={0.7}
+            style={tw`items-center py-2`}
+          >
+            <Text style={[tw`text-gray-600 text-sm`, { fontFamily: "Roobert-Medium" }]}>
+              Skip for now
+            </Text>
+          </TouchableOpacity>
+        </View>
+
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({});

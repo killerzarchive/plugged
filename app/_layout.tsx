@@ -1,3 +1,4 @@
+import "../global.css";
 import { ApolloProvider } from "@apollo/client/react";
 import { useFonts } from "expo-font";
 import { Stack } from 'expo-router';
@@ -5,13 +6,14 @@ import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 import { AuthProvider, useAuth } from "../contexts/auth";
+import { ThemeProvider } from "../contexts/theme";
 import { client } from "./apollo/client";
 
 // Prevent splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
 
 function RootLayoutContent() {
-  const { token, isLoading } = useAuth();
+  const { isLoading } = useAuth();
 
   const [fontsLoaded] = useFonts({
     'Roobert-Regular': require('../assets/fonts/RoobertTRIAL-Regular-BF67243fd53fdf2.otf'),
@@ -44,9 +46,14 @@ function RootLayoutContent() {
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="user/[id]" options={{ headerShown: true, title: 'User Profile', presentation: 'card' }} />
-      <Stack.Screen name="hotspot/[id]" options={{ headerShown: true, title: 'Hotspot', presentation: 'card' }} />
-      <Stack.Screen name="post/[id]" options={{ headerShown: true, title: 'Post', presentation: 'card' }} />
+      <Stack.Screen name="hotspot/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="post/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="event/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="landing" options={{ headerShown: false }} />
+      <Stack.Screen name="settings" options={{ headerShown: false }} />
       <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="posts" options={{ headerShown: false, presentation: 'transparentModal', animation: 'slide_from_bottom', contentStyle: { backgroundColor: 'transparent' } }} />
+      <Stack.Screen name="profile-view" options={{ headerShown: false, presentation: 'transparentModal', animation: 'slide_from_bottom', contentStyle: { backgroundColor: 'transparent' } }} />
       <Stack.Screen name="index" options={{ headerShown: false }} />
     </Stack>
   );
@@ -56,7 +63,9 @@ export default function RootLayout() {
   return (
     <ApolloProvider client={client}>
       <AuthProvider>
-        <RootLayoutContent />
+        <ThemeProvider>
+          <RootLayoutContent />
+        </ThemeProvider>
       </AuthProvider>
     </ApolloProvider>
   );
